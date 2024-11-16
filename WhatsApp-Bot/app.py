@@ -1,78 +1,79 @@
 from flask import Flask, request
 from twilio.twiml.messaging_response import MessagingResponse
-
-from dateutil.parser import parse
-
+from pymongo import MongoClient
+from datetime import datetime
 
 app = Flask(__name__)
-count=0
+count = 0
+first_message = True
 
+# Set up MongoDB connection
+client = MongoClient('mongodb://localhost:27017/') # will need to add the connection string from the MongoDB Atlas.
+db = client['reminder_db']
+reminders_collection = db['reminders'] # for both lines, no need to create the db and collection, when first run, MongoDB will create them automatically.
 
 @app.route("/sms", methods=['POST'])
 def reply():
+    global first_message
     try:
         incoming_msg = request.form.get('Body').lower()
         response = MessagingResponse()
         print(incoming_msg)
         message = response.message()
         responded = False
-        words = incoming_msg.split('@')
-        if "שלום" in incoming_msg:
+
+        if first_message:
             reply = "שלום! \nאתה רוצה שניצור תזכורת?"
             message.body(reply)
+            first_message = False
             responded = True
-
-        if len(words) == 1 and "כן" in incoming_msg:
+        elif "כן" in incoming_msg:
             reminder_string = "בבקשה תשים את התאריך הרצוי בפורמט הבא בלבד.\n\n"\
-            "תאריך @ הקלד פה את התאריך "
+                              "תאריך ושעה @ תוכן"
             message.body(reminder_string)
             responded = True
-        if len(words) == 1 and "לא" in incoming_msg:
-            reply = "אוקיי, להתראות!"
+        elif "לא" in incoming_msg:
+            reply = "אוקיי, שיהיה לך יום טוב!"
             message.body(reply)
             responded = True
+        elif '@' in incoming_msg:
+            parts = incoming_msg.split('@')
+            datetime_str = parts[0].strip()
+            content = parts[1].strip()
+            
+            try:
+                # Parse the date and time
+                reminder_datetime = datetime.strptime(datetime_str, "%d/%m/%y %H:%M")
+                
+                # Check if the date is in the past
+                if reminder_datetime < datetime.now():
+                    raise ValueError("התאריך שגוי. התאריך הוא בעבר.")
+                
+                # Create the reminder document
+                reminder = {
+                    "date": reminder_datetime,
+                    "content": content
+                }
+                
+                # Insert the reminder into MongoDB
+                reminders_collection.insert_one(reminder)
+                
+                reply = "התזכורת שלך נשמרה בהצלחה!"
+                message.body(reply)
+                responded = True
+            except ValueError as ve:
+                reply = f"פורמט שגוי או תאריך שגוי: {ve}. אנא שלח את התזכורת בפורמט הבא: תאריך ושעה @ תוכן"
+                message.body(reply)
+                responded = True
+            except Exception as e:
+                reply = "אירעה שגיאה. אנא נסה שוב."
+                message.body(reply)
+                responded = True
 
         return str(response)
     except Exception as e:
         print(f"Error: {e}")
         return str(e), 500
-    
-    # elif len(words) != 1:
-    #     input_type = words[0].strip().lower()
-    #     input_string = words[1].strip()
-    #     if input_type == "date":
-    #         reply="Please enter the reminder message in the following format only.\n\n"\
-    #         "*Reminder @* _type the message_"
-    #         set_reminder_date(input_string)
-    #         message.body(reply)
-    #         responded = True
-    #     if input_type == "reminder":
-    #         print("yuhu")
-    #         reply="Your reminder is set!"
-    #         set_reminder_body(input_string)
-    #         message.body(reply)
-    #         responded = True
-        
-    # if not responded:
-    #     print("why", input_type)
-    #     message.body('Incorrect request format. Please enter in the correct format')
-    
-    # return str(response)
-    
-# def set_reminder_date(msg):
-#     p= parse(msg)
-#     date=p.strftime('%d/%m/%Y')
-#     save_reminder_date(date)
-#     return 0
-    
-# def set_reminder_body(msg):
-#     save_reminder_body(msg)
-#     return 0
-    
-     
-#     return reminder_message
-
 
 if __name__ == "__main__":
     app.run(debug=True)
-    
