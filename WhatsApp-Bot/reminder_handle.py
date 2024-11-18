@@ -48,11 +48,8 @@ def handle_message(request):
             responded = True
         elif '@' in incoming_msg:
             parts = incoming_msg.split('@')
-            print(parts)
             datetime_str = parts[0].strip()
-            print(datetime_str)
             content = parts[1].strip()
-            print(content)
             
             try:
                 # Ensure the time part is in HH:MM format
@@ -84,7 +81,7 @@ def handle_message(request):
                 first_message = True
                 responded = True
             except ValueError as ve:
-                reply = f"פורמט שגוי או תאריך שגוי: \nאנא שלח/י את התזכורת כפי שמצוין בדוגמה."
+                reply = f" פורמט שגוי או תאריך שכבר חלף, \nאנא שלח/י את התזכורת כפי שמצוין בדוגמה."
                 message.body(reply)
                 responded = True
             except Exception as e:
