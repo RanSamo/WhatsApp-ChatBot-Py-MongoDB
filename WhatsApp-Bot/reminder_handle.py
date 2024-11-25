@@ -3,6 +3,8 @@ import pytz
 from pymongo import MongoClient
 from twilio.twiml.messaging_response import MessagingResponse
 import os
+import phonenumbers
+from phonenumbers import timezone, geocoder
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -20,6 +22,29 @@ israel_tz = pytz.timezone('Asia/Jerusalem')
 
 first_message = True
 
+
+def get_timezone_and_country_from_phone_number(phone_number):
+    try:
+        # Parse the phone number
+        parsed_number = phonenumbers.parse(phone_number)
+        
+        # Get the time zone(s) for the phone number
+        time_zones = timezone.time_zones_for_number(parsed_number)
+        
+        # Get the country for the phone number
+        country = geocoder.country_name_for_number(parsed_number, "en")
+        
+        if time_zones:
+            # Return the first time zone and the country (assuming the phone number is valid and has a time zone)
+            return pytz.timezone(time_zones[0]), country
+        else:
+            # Default to UTC if no time zone is found
+            return pytz.utc, country
+    except phonenumbers.NumberParseException:
+        # Handle invalid phone numbers
+        return pytz.utc, "Unknown"
+
+
 def handle_message(request):
     global first_message
     try:
@@ -29,6 +54,9 @@ def handle_message(request):
         print(incoming_msg)
         message = response.message()
         responded = False
+
+        user_timezone, user_country = get_timezone_and_country_from_phone_number(from_number)
+        print(f"User's time zone: {user_timezone}")
 
         if first_message:
             reply = "שלום! \nאת/ה רוצה שניצור תזכורת?"
@@ -63,14 +91,16 @@ def handle_message(request):
                 reminder_datetime = israel_tz.localize(reminder_datetime)
 
                 # Check if the date is in the past
-                if reminder_datetime < datetime.now(israel_tz):
+                if reminder_datetime < datetime.now(user_timezone):
                     raise ValueError("התאריך שגוי. התאריך הוא בעבר.")
                 
                 # Create the reminder document
                 reminder = {
                     "phone_number": from_number,
                     "date": reminder_datetime,
-                    "content": content
+                    "content": content,
+                    "user_timezone": str(user_timezone),
+                    "user_country": user_country    
                 }
                 
                 # Insert the reminder into MongoDB
