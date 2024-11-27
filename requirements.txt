@@ -4,3 +4,4 @@ twilio
 pytz
 python-dotenv
 phonenumbers
+openai

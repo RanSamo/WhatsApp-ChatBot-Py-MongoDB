@@ -1,5 +1,5 @@
 from flask import Flask, request
-from reminder_handle import handle_message
+from message_handler import handle_message
 import os
 from dotenv import load_dotenv
 
