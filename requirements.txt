@@ -1,0 +1,6 @@
+Flask
+pymongo
+twilio
+pytz
+python-dotenv
+phonenumbers
