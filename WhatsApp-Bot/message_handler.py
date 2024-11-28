@@ -19,16 +19,16 @@ def handle_message(request):
         ai_response = get_ai_response(incoming_msg)
         print(f"AI response: {ai_response}")
 
-        if first_message:
-            if user_country == "Israel":
-                reply = "שלום! \nאת/ה רוצה שניצור תזכורת?"
-            else:
-                reply = "Hello! \nDo you want to set a reminder?"
-            message.body(reply)
-            first_message = False
-            responded = True
+        # if first_message:
+        #     if user_country == "Israel":
+        #         reply = "שלום! \n יצרת קשר עם הבינה המלאכותית שלנו, אני יודעת לעשות הכל, מנהל איתך שיח על כל נושא שבעולם, ליצירת תזכורות ועד לביצוע רכישות בשלל נושאים, על מה תרצה לדבר?"
+        #     else:
+        #         reply = "Hello! \nYou have reached our AI assistant. I can help you with anything, from setting reminders to making purchases on various topics. What would you like to talk about?"
+        #     message.body(reply)
+        #     first_message = False
+        #     responded = True
         #TODO. not sure this part is correct, need to start testing it.
-        elif "תזכורת" in ai_response or "reminder" in ai_response:
+        if "תזכורת" in ai_response or "reminder" in ai_response:
             # AI detected a reminder request, summarize the reminder details
             reminder_summary = get_reminder_summary(incoming_msg)
             print(f"Reminder summary: {reminder_summary}")
@@ -49,6 +49,7 @@ def handle_message(request):
 
                 # Save the reminder to the database
                 save_reminder(from_number, reminder_datetime, content, user_timezone, user_country)
+                #TODO. need to make sure it's saying it was saved in the correct language.
                 message.body("Reminder set successfully!")
                 responded = True
             except ValueError as e:
