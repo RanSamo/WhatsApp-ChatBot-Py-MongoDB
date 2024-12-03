@@ -37,3 +37,4 @@ def save_reminder(phone_number, reminder_datetime, content, user_timezone, user_
         "user_country": user_country
     }
     reminders_collection.insert_one(reminder)
+    print(f"Reminder saved: {reminder}")

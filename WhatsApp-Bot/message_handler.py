@@ -17,7 +17,7 @@ def handle_message(request):
 
         user_timezone, user_country = get_timezone_and_country_from_phone_number(from_number)
         ai_response = get_ai_response(incoming_msg)
-        print(f"AI response: {ai_response}")
+        #print(f"AI response: {ai_response}")
 
         # if first_message:
         #     if user_country == "Israel":
@@ -27,8 +27,8 @@ def handle_message(request):
         #     message.body(reply)
         #     first_message = False
         #     responded = True
-        #TODO. not sure this part is correct, need to start testing it.
-        if "תזכורת" in ai_response or "reminder" in ai_response:
+        # if "תזכורת" in ai_response or "reminder" in ai_response:
+        if "תזכורת" in incoming_msg or "reminder" in incoming_msg:
             # AI detected a reminder request, summarize the reminder details
             reminder_summary = get_reminder_summary(incoming_msg)
             print(f"Reminder summary: {reminder_summary}")
@@ -40,7 +40,7 @@ def handle_message(request):
                 content = parts[1].strip()
 
                 # Parse the date and time
-                reminder_datetime = datetime.strptime(datetime_str, "%m/%d/%Y %H:%M")
+                reminder_datetime = datetime.strptime(datetime_str, "%d/%m/%Y %H:%M") 
                 reminder_datetime = user_timezone.localize(reminder_datetime)
 
                 # Check if the date is in the past
@@ -49,17 +49,26 @@ def handle_message(request):
 
                 # Save the reminder to the database
                 save_reminder(from_number, reminder_datetime, content, user_timezone, user_country)
-                #TODO. need to make sure it's saying it was saved in the correct language.
-                message.body("Reminder set successfully!")
-                responded = True
+                if "תזכורת" in incoming_msg:
+                    message.body("התזכורת נקבעה בהצלחה!")
+                    Responded = True
+                else:
+                    message.body("Reminder set successfully!")
+                    responded = True
             except ValueError as e:
                 message.body(str(e))
                 responded = True
-        else:
+        elif not responded:
             message.body(ai_response)
             responded = True
 
         return str(response)
+        # else:
+        #     message.body(ai_response)
+        #     responded = True
+
     except Exception as e:
         print(f"Error: {e}")
-        return str(e), 500
+        if not responded:
+            message.body("Sorry, something went wrong. Please try again.")
+        return str(response)

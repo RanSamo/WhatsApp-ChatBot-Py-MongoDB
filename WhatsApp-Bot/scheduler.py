@@ -55,18 +55,30 @@ def check_reminders():
                     "$lte": now_utc
                 }
             })
+            #old and working one, checking for multiple timezones.
+            # for reminder in due_reminders:
+            #     # Convert the reminder time to Israel time zone
+            #     reminder_time_utc = reminder['date']
+            #     reminder_time_israel = reminder_time_utc.astimezone(israel_tz)
+                
+            #     # Send the reminder to the client
+            #     send_reminder(reminder['phone_number'], reminder['content'])
+                
+            #     # Remove the reminder from the collection after sending
+            #     reminders_collection.delete_one({"_id": reminder["_id"]})
             
+
+            #checking func for multiple timezones:
             for reminder in due_reminders:
-                # Convert the reminder time to Israel time zone
                 reminder_time_utc = reminder['date']
-                reminder_time_israel = reminder_time_utc.astimezone(israel_tz)
-                
-                # Send the reminder to the client
-                send_reminder(reminder['phone_number'], reminder['content'])
-                
-                # Remove the reminder from the collection after sending
-                reminders_collection.delete_one({"_id": reminder["_id"]})
-            
+                reminder_timezone = pytz.timezone(reminder['user_timezone'])
+                reminder_time_local = reminder_time_utc.astimezone(reminder_timezone)
+                now_local = now_utc.astimezone(reminder_timezone)
+
+                if now_local >= reminder_time_local:
+                    send_reminder(reminder['phone_number'], reminder['content'])
+                    reminders_collection.delete_one({"_id": reminder["_id"]})
+
             # Sleep for a minute before checking again
             time.sleep(60)
         except Exception as e:
